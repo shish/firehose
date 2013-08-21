@@ -58,7 +58,7 @@ func (c *Client) RemoveMe() {
 	for entry := c.ClientList.Front(); entry != nil; entry = entry.Next() {
 		client := entry.Value.(Client)
 		if c.Equal(&client) {
-			Log("RemoveMe: ", c.Name)
+			//Log("RemoveMe: ", c.Name)
 			c.ClientList.Remove(entry)
 		}
 	}
@@ -171,7 +171,7 @@ func main() {
 			defer netListen.Close()
 
 			for {
-				Log("Waiting for clients")
+				//Log("Waiting for clients")
 				connection, error := netListen.Accept()
 				if error != nil {
 					Log("Client error: ", error)
