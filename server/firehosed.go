@@ -24,7 +24,8 @@ type Client struct {
 // Defines a read function for a client, reading from the connection into
 // a buffer passed in. Returns true if read was successful, false otherwise
 func (c *Client) Read(buffer []byte) bool {
-	bytesRead, error := c.Conn.Read(buffer)
+	//bytesRead, error := c.Conn.Read(buffer)
+	_, error := c.Conn.Read(buffer)
 	if error != nil {
 		c.Close()
 		Log(error)
