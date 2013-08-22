@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import wx
 import sys
 import logging
@@ -24,6 +26,10 @@ class RecvEvent(wx.PyCommandEvent):
         return self._value
 
 
+def uid_to_name(uid):
+    return uid.partition("(")[0].partition("<")[0].strip()
+
+
 
 class ChumList(wx.Panel):
     def __get_ids(self):
@@ -35,8 +41,8 @@ class ChumList(wx.Panel):
     def get_my_key(self):
         # find which identity to use
         keyname = self.identity.GetValue()
-        my_key = {"uids": ["Anonymous (Me)"], "keyid": None}
-        for key in self.gpg.list_keys(True):
+        my_key = {"uids": ["Anonymous Self"], "keyid": None}
+        for key in self.main.gpg.list_keys(True):
             if key["uids"][0] == keyname:
                 my_key = key
         return my_key
@@ -82,7 +88,7 @@ class ChumList(wx.Panel):
         for n, key in enumerate(self.main.gpg.list_keys()):
             self.chum_list.append(key["uids"][0])
 
-            name = wx.Button(self, 4100 + n, key["uids"][0].split()[0])
+            name = wx.Button(self, 4100 + n, uid_to_name(key["uids"][0]))
             self.Bind(wx.EVT_BUTTON, self.OnItemSelected, name)
             self.chums.Add(name, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
 
@@ -229,7 +235,7 @@ class MainFrame(wx.Frame):
         TODO: if queue is empty, trickle random data
         """
         my_key = self.chums.get_my_key()
-        my_name = my_key["uids"][0].split()[0]
+        my_name = uid_to_name(my_key["uids"][0])
         self.get_chat(target).show("%s: %s" % (my_name, data))
         data = self.gpg.encrypt(data, target, sign=my_key["keyid"], passphrase=self.passphrase, always_trust=True)
         self.sock.sendall(base64.b64encode(str(data.data)))
@@ -251,8 +257,8 @@ class MainFrame(wx.Frame):
 
     def OnRecv(self, evt):
         data = evt.GetValue()
-        target = data.username or "Unknown"
-        self.get_chat(target).show("%s: %s" % (target.split()[0], data.data))
+        target = data.username or "Anonymous"
+        self.get_chat(target).show("%s: %s" % (uid_to_name(target), data.data))
 
     def __init__(self, parent):
         self.gpg = gnupg.GPG()
