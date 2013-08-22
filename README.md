@@ -11,6 +11,15 @@ Protocol:
     unsigned short: length of data
 	byte[$length]: GPG-encrypted message
 
+  message =
+    cmd data
+
+  cmds:
+    MSG <text>
+    ACT <text>
+    PING
+    PONG
+
   If the GPG message is signed, and the recipient has your public key, you'll
   show up in a window of your own at their end; if not, you'll show up as
   "Unknown". This is pretty much using your GPG keyring as an IM buddy list.
