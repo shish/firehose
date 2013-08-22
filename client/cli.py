@@ -1,33 +1,32 @@
 #!/usr/bin/env python
 
-import gnupg
-import uuid
 import base64
 import socket
 import sys
-import argparse
 import threading
 
+import common
 
-def _get_my_key(gpg):
+
+def _get_myself(fhc):
     print "Select an identity to send as:"
-    keys = gpg.list_keys(True)
-    for n, key in enumerate(keys):
-        print "%02d> %s (%s)" % (n, key["uids"][0], key["keyid"])
+    chums = fhc.get_identities()
+    for n, chum in enumerate(chums):
+        print "%02d> %s (%s)" % (n, chum.name, chum.keyid)
     inp = raw_input("Enter ID number (or blank to be anonymous)> ")
     try:
-        return keys[int(inp)]
+        return chums[int(inp)]
     except Exception as e:
-        return {"keyid": None, "uids": ["Anonymous"]}
+        return common.ANONYMOUS
 
 
-def _get_chum_key(gpg):
+def _get_chum(fhc):
     print "Select somebody to send to:"
-    keys = gpg.list_keys(False)
-    for n, key in enumerate(keys):
-        print "%02d> %s (%s)" % (n, key["uids"][0], key["keyid"])
+    chums = fhc.get_chums()
+    for n, chum in enumerate(chums):
+        print "%02d> %s (%s)" % (n, chum.name, chum.keyid)
     inp = int(raw_input("Enter ID number> "))
-    return keys[inp]
+    return chums[inp]
 
 
 def _connect():
@@ -36,10 +35,15 @@ def _connect():
     return s
 
 
-def main_send(gpg, s, my_key, chum_key):
+def main_send(gpg, s, myself, chum):
     while True:
-        data = raw_input("Send to %s> " % chum_key["uids"][0])
-        data = gpg.encrypt(data, chum_key["keyid"], sign=my_key["keyid"], passphrase="firehose", always_trust=True)
+        data = raw_input("Send to %s> " % chum.name)
+        cmd, _, args = data.partition(" ")
+        if cmd == "/me":
+            data = "ACT " + args
+        else:
+            data = "MSG " + cmd + " " + args
+        data = gpg.encrypt(data, chum.keyid, sign=myself.keyid, passphrase="firehose", always_trust=True)
         s.sendall(base64.b64encode(str(data.data)))
 
 
@@ -58,17 +62,17 @@ def main_recv(gpg, s):
 
 
 def main(args=sys.argv):
-    gpg = gnupg.GPG()  # gnupghome="./gpg/", verbose=False)
+    fhc = common.FHC()
 
     try:
-        my_key = _get_my_key(gpg)
-        my_chum_key = _get_chum_key(gpg)
+        my_key = _get_myself(fhc)
+        my_chum_key = _get_chum(fhc)
 
         s = _connect()
-        recv = threading.Thread(target=main_recv, args=(gpg, s))
+        recv = threading.Thread(target=main_recv, args=(fhc.gpg, s))
         recv.daemon = True
         recv.start()
-        main_send(gpg, s, my_key, my_chum_key)
+        main_send(fhc.gpg, s, my_key, my_chum_key)
     except EOFError, KeyboardInterrupt:
         pass
 
