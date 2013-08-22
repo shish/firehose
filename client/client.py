@@ -31,7 +31,7 @@ def main_send(gpg, s):
     targets = raw_input("Send to whom? > ").split(",")
     while True:
         data = raw_input("Send to %s> " % ",".join(targets))
-        data = gpg.encrypt(data, targets, passphrase="firehose", always_trust=True)
+        data = gpg.encrypt(data, targets, sign=gpg.list_keys(True)[0]["keyid"], passphrase="firehose", always_trust=True)
         s.sendall(base64.b64encode(str(data.data)))
 
 
@@ -43,7 +43,8 @@ def main_recv(gpg, s):
         try:
             data = gpg.decrypt(base64.b64decode(data), passphrase="firehose")
             if data:
-                print data
+                target = data.username or "Unknown"
+                print "%s: %s" % (target, data)
         except Exception as e:
             print "Error decoding: %r (%r)" % (data, e)
 
