@@ -9,8 +9,8 @@ import threading
 import base64
 
 from wx.lib.mixins.inspection import InspectableApp
+from common import uid_to_name, __version__
 
-__version__ = "0.0.0"
 log = logging.getLogger(__name__)
 
 myEVT_RECV = wx.NewEventType()
@@ -24,11 +24,6 @@ class RecvEvent(wx.PyCommandEvent):
 
     def GetValue(self):
         return self._value
-
-
-def uid_to_name(uid):
-    return uid.partition("(")[0].partition("<")[0].strip()
-
 
 
 class ChumList(wx.Panel):
