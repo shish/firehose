@@ -34,6 +34,23 @@ class ChatWin(object):
         self.input_box.delete(0, tkinter.END)
 
 
+class KeyGen(object):
+    def __init__(self, main):
+        self.main = main
+        self.root = tkinter.Toplevel(main.root)
+        self.root.title("Create Account")
+
+        self.label = tkinter.Label(self.root, "You don't appear to have any private keys in your GPG keyring")
+        self.label.pack(fill=tkinter.BOTH)
+
+        self.name_box = tkinter.Entry(self.root)
+        self.name_box.pack(fill=tkinter.BOTH)
+        self.email_box = tkinter.Entry(self.root)
+        self.email_box.pack(fill=tkinter.BOTH)
+        self.comment_box = tkinter.Entry(self.root)
+        self.comment_box.pack(fill=tkinter.BOTH)
+
+
 class Noise(object):
     def __init__(self):
         self.sock = None
@@ -89,6 +106,9 @@ class Noise(object):
         thread = threading.Thread(target=self.__recv)
         thread.daemon = True
         thread.start()
+
+        if not self.gpg.list_keys(True):
+            KeyGen(self)
 
         self.root.mainloop()
 
