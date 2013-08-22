@@ -42,7 +42,7 @@ def main_send(gpg, s, myself, chum):
         if cmd == "/me":
             data = "ACT " + args
         else:
-            data = "MSG " + cmd + " " + args
+            data = "MSG " + data
         data = gpg.encrypt(data, chum.keyid, sign=myself.keyid, passphrase="firehose", always_trust=True)
         s.sendall(base64.b64encode(str(data.data)))
 
@@ -73,7 +73,7 @@ def main(args=sys.argv):
         recv.daemon = True
         recv.start()
         main_send(fhc.gpg, s, my_key, my_chum_key)
-    except EOFError, KeyboardInterrupt:
+    except (EOFError, KeyboardInterrupt):
         pass
 
 
