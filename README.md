@@ -18,7 +18,7 @@ Protocol:
     MSG <text>
     ACT <text>
     PING
-    PONG
+    PONG <status>
 
   If the GPG message is signed, and the recipient has your public key, you'll
   show up in a window of your own at their end; if not, you'll show up as

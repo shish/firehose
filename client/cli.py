@@ -5,7 +5,7 @@ import socket
 import sys
 import threading
 
-import common
+import firehose.common as common
 
 
 def _get_myself(fhc):
@@ -13,11 +13,8 @@ def _get_myself(fhc):
     chums = fhc.get_identities()
     for n, chum in enumerate(chums):
         print "%02d> %s (%s)" % (n, chum.name, chum.keyid)
-    inp = raw_input("Enter ID number (or blank to be anonymous)> ")
-    try:
-        return chums[int(inp)]
-    except Exception as e:
-        return common.ANONYMOUS
+    inp = raw_input("Enter ID number> ")
+    return chums[int(inp)]
 
 
 def _get_chum(fhc):
@@ -25,14 +22,8 @@ def _get_chum(fhc):
     chums = fhc.get_chums()
     for n, chum in enumerate(chums):
         print "%02d> %s (%s)" % (n, chum.name, chum.keyid)
-    inp = int(raw_input("Enter ID number> "))
-    return chums[inp]
-
-
-def _connect():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("firehose.shishnet.org", 9988))
-    return s
+    inp = raw_input("Enter ID number> ")
+    return chums[int(inp)]
 
 
 def main_send(gpg, s, myself, chum):
@@ -41,6 +32,8 @@ def main_send(gpg, s, myself, chum):
         cmd, _, args = data.partition(" ")
         if cmd == "/me":
             data = "ACT " + args
+        elif cmd in ["PING", "PONG"]:
+            pass
         else:
             data = "MSG " + data
         data = gpg.encrypt(data, chum.keyid, sign=myself.keyid, passphrase="firehose", always_trust=True)
@@ -68,7 +61,7 @@ def main(args=sys.argv):
         my_key = _get_myself(fhc)
         my_chum_key = _get_chum(fhc)
 
-        s = _connect()
+        s = fhc.sock
         recv = threading.Thread(target=main_recv, args=(fhc.gpg, s))
         recv.daemon = True
         recv.start()
