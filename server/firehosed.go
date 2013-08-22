@@ -114,15 +114,9 @@ func ClientSender(client *Client) {
 		select {
 			case buffer := <-client.Incoming:
 				//Log("ClientSender sending ", string(buffer), " to ", client.Name)
-				count := 0
-				for i := 0; i < len(buffer); i++ {
-					if buffer[i] == 0x00 {
-						break
-					}
-					count++
-				}
 				//Log("Send size: ", count)
-				client.Conn.Write([]byte(buffer)[0:count])
+				//client.Conn.Write([]byte(string(len(buffer))))
+				client.Conn.Write([]byte(buffer + "\n"))
 			case <-client.Quit:
 				//Log("Client ", client.Name, " quitting")
 				client.Conn.Close()
