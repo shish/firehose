@@ -17,19 +17,20 @@ class Firehose(object):
         self.sock = None
 
     def get_data(self):
-        data_type, = struct.unpack("b", self.sock.recv(1))
-        if data_type == 0:
-            data_len, = struct.unpack(">h", self.sock.recv(2))
-            data = ""
-            while len(data) < data_len:
-                data = data + self.sock.recv(data_len - len(data))
-            return data
-        else:
+        data_type, data_len = struct.unpack(">bh", self.sock.recv(3))
+
+        if data_type != 0:
             print "Unknown data type: %r" % data_type
             self.close()
             self.connect()
+            return None
+
+        data = ""
+        while len(data) < data_len:
+            data = data + self.sock.recv(min(data_len - len(data), 4096))
+        return data
 
     def send_data(self, data):
-        self.sock.sendall(data)
+        self.sock.sendall(struct.pack(">bh", 0, len(data)) + data)
 
 
