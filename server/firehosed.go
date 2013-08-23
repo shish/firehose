@@ -8,6 +8,7 @@ import "fmt"
 import "net"
 import "container/list"
 import "bytes"
+import "encoding/binary"
 
 // Defines a Client with a name and connection object, and
 // some channels for sending and receiving text.
@@ -23,16 +24,14 @@ type Client struct {
 
 // Defines a read function for a client, reading from the connection into
 // a buffer passed in. Returns true if read was successful, false otherwise
-func (c *Client) Read(buffer []byte) bool {
-	//bytesRead, error := c.Conn.Read(buffer)
-	_, error := c.Conn.Read(buffer)
+func (c *Client) Read(buffer []byte) int {
+	bytesRead, error := c.Conn.Read(buffer)
 	if error != nil {
 		c.Close()
 		Log(error)
-		return false
+		return 0
 	}
-	//Log("Read ", bytesRead, " bytes")
-	return true
+	return bytesRead
 }
 
 // Closes a client connection and removes it from the client list
@@ -87,38 +86,47 @@ func IOHandler(Incoming <-chan string, clientList *list.List) {
 // Client reading goroutine - reads incoming data from the tcp socket, 
 // sends it to the client.Outgoing channel (to be picked up by IOHandler)
 func ClientReader(client *Client) {
-	buffer := make([]byte, 2048)
+	for {
+		data_type := make([]byte, 1)
+		bytesRead := client.Read(data_type)
+		if bytesRead == 0 {break}
 
-	for client.Read(buffer) {
-		if bytes.Equal(buffer, []byte("/quit")) {
-			client.Close()
+		if data_type[0] == 0x00 {
+			data_len := make([]byte, 2)
+			bytesRead = client.Read(data_len)
+			if bytesRead == 0 {break}
+
+			// FIXME: current code "reads a packet(ish)" should "read data_len bytes"
+			data := make([]byte, 2048)
+			bytesRead = client.Read(data)
+			if bytesRead == 0 {break}
+			send := data[0:bytesRead]
+			client.Outgoing <- string(send)
+		} else {
+			Log(client.Name, "broke protocol, disconnecting")
 			break
 		}
-		//Log("ClientReader received ", client.Name, "> ", string(buffer))
-		//send := client.Name+"> "+string(buffer)
-		send := string(buffer)
-		client.Outgoing <- send
-		for i := 0; i < 2048; i++ {
-			buffer[i] = 0x00
-		}
 	}
-
-	//client.Outgoing <- client.Name + " has left chat"
-	//Log("ClientReader stopped for ", client.Name)
+	client.Close()
 }
 
 // Client sending goroutine - waits for data to be sent over client.Incoming
 // (from IOHandler), then sends it over the socket
 func ClientSender(client *Client) {
+	Log(client.Name, "connected")
 	for {
 		select {
-			case buffer := <-client.Incoming:
+			case data := <-client.Incoming:
 				//Log("ClientSender sending ", string(buffer), " to ", client.Name)
 				//Log("Send size: ", count)
 				//client.Conn.Write([]byte(string(len(buffer))))
-				client.Conn.Write([]byte(buffer + "\n"))
+				buffer := new(bytes.Buffer)
+				binary.Write(buffer, binary.BigEndian, uint8(0x00))
+				binary.Write(buffer, binary.BigEndian, uint16(len(data)))
+				buffer.WriteString(data)
+				client.Conn.Write(buffer.Bytes())
 			case <-client.Quit:
-				//Log("Client ", client.Name, " quitting")
+				Log(client.Name, "quitting")
 				client.Conn.Close()
 				break
 		}
