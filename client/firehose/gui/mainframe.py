@@ -1,6 +1,4 @@
 import wx
-import threading
-import base64
 import logging
 
 from firehose.gui.chat import ChatPanel
@@ -107,38 +105,24 @@ class MainFrame(wx.Frame):
         self.tabs.SetSelection(1)
         return self.chats[name]
 
-    def __recv(self):
-        while True:
-            data = self.fhc.sock.recv(4096)
-            if not data:
-                break
-            try:
-                data = self.gpg.decrypt(base64.b64decode(data), passphrase=self.fhc.passphrase)
-                if data:
-                    wx.PostEvent(self, RecvEvent(myEVT_RECV, -1, data))
-            except Exception as e:
-                #self.get_chat("Status").show("Error decoding: %r (%r)" % (data, e))
-                pass
-        self.fhc.sock.close()
-        self.fhc.sock = None
+    def OnData(self, chum, data):
+        wx.PostEvent(self, RecvEvent(myEVT_RECV, -1, (chum, data)))
 
     def OnRecv(self, evt):
-        data = evt.GetValue()
-        log.info("IN : %s %s", data.username, data.data)
+        chum, data = evt.GetValue()
 
-        target = data.username or "Anonymous"
         cmd, _, args = data.data.partition(" ")
         if cmd == "MSG":
-            self.get_chat(target).show("%s: %s" % (common.uid_to_name(target), args))
+            self.get_chat(chum.uid).show("%s: %s" % (chum.name, args))
         elif cmd == "ACT":
-            self.get_chat(target).show("* %s %s" % (common.uid_to_name(target), args))
+            self.get_chat(chum.uid).show("* %s %s" % (chum.name, args))
         elif cmd == "PING":
             if data.username:
                 self.fhc.send(data.username, "PONG %s" % self.chums.status.GetValue())
         elif cmd == "PONG":
-            self.chums.set_status(self.fhc.get_chum(data.username), args)
+            self.chums.set_status(chum, args)
         else:
-            self.get_chat(target).show("??? %s %s" % (common.uid_to_name(target), data.data))
+            self.get_chat(chum.uid).show("??? %s %s" % (chum.name, data.data))
 
     def __init__(self, parent):
         self.fhc = common.FHC()
@@ -148,10 +132,7 @@ class MainFrame(wx.Frame):
         self.__init_gui(parent)
 
         self.Bind(EVT_RECV, self.OnRecv)
-
-        thread = threading.Thread(target=self.__recv)
-        thread.daemon = True
-        thread.start()
+        self.fhc.start(self.OnData)
 
     def OnClose(self, evt):
         self.Close()

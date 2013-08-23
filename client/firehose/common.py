@@ -3,6 +3,7 @@ import gnupg
 import socket
 import base64
 import logging
+import threading
 
 
 __version__ = "0.0.0"
@@ -38,6 +39,31 @@ class FHC(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(("firehose.shishnet.org", 9988))
 
+    def start(self, cb):
+        def handle(data):
+            chum = self.get_chum(data.username)
+            if cb:
+                cb(chum, data)
+
+        def recv():
+            while True:
+                data = self.sock.recv(4096)
+                if not data:
+                    break
+                try:
+                    data = self.gpg.decrypt(base64.b64decode(data), passphrase=self.passphrase)
+                    if data:
+                        log.info("IN[%s]: %s", data.username, data.data)
+                        handle(data)
+                except Exception as e:
+                    log.exception("Error while decoding packet")
+            self.sock.close()
+            self.sock = None
+
+        thread = threading.Thread(target=recv)
+        thread.daemon = True
+        thread.start()
+
     def get_chums(self):
         return [Chum(self, key) for key in self.gpg.list_keys(False)]
 
@@ -45,6 +71,7 @@ class FHC(object):
         for c in self.get_chums() + [ANONYMOUS, STATUS]:
             if uid == c.uid:
                 return c
+        log.warning("Couldn't find chum: %r" % uid)
         return None
 
     def get_identities(self):
