@@ -32,5 +32,3 @@ class Firehose(object):
 
     def send_data(self, data):
         self.sock.sendall(struct.pack(">bh", 0, len(data)) + data)
-
-

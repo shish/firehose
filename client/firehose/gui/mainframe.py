@@ -21,7 +21,7 @@ class RecvEvent(wx.PyCommandEvent):
         return self._value
 
 
-class MainFrame(wx.Frame):
+class MainFrame(wx.Frame, common.FirehoseClient):
     def __menu(self):
         menu_bar = wx.MenuBar()
 
@@ -35,50 +35,50 @@ class MainFrame(wx.Frame):
         menu = wx.Menu()
 
         m_status_request = menu.Append(2020, "Ping contacts for their status", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["status_request"]:
+        if self.config["status_request"]:
             m_status_request.Check(True)
         def OnToggleStatusRequest(evt):
-            self.fhc.config["status_request"] = m_status_request.IsChecked()
+            self.config["status_request"] = m_status_request.IsChecked()
         self.Bind(wx.EVT_MENU, OnToggleStatusRequest, m_status_request)
 
         m_status_broadcast = menu.Append(2021, "Broadcast own status changes", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["status_broadcast"]:
+        if self.config["status_broadcast"]:
             m_status_broadcast.Check(True)
         def OnToggleStatusBroadcast(evt):
-            self.fhc.config["status_broadcast"] = m_status_broadcast.IsChecked()
-            if self.fhc.config["status_broadcast"]:
-                self.fhc.set_status(self.fhc.status)
+            self.config["status_broadcast"] = m_status_broadcast.IsChecked()
+            if self.config["status_broadcast"]:
+                self.set_status(self.status)
         self.Bind(wx.EVT_MENU, OnToggleStatusBroadcast, m_status_broadcast)
 
         m_status_respond = menu.Append(2022, "Respond to status reqests", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["status_respond"]:
+        if self.config["status_respond"]:
             m_status_respond.Check(True)
         def OnToggleStatusRespond(evt):
-            self.fhc.config["status_respond"] = m_status_respond.IsChecked()
-            if self.fhc.config["status_respond"]:
-                self.fhc.set_status(self.fhc.status)
+            self.config["status_respond"] = m_status_respond.IsChecked()
+            if self.config["status_respond"]:
+                self.set_status(self.status)
         self.Bind(wx.EVT_MENU, OnToggleStatusRespond, m_status_respond)
 
         menu.AppendSeparator()
 
         m_msg_ack_request = menu.Append(2030, "Request message acknowledgement", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["msg_ack_request"]:
+        if self.config["msg_ack_request"]:
             m_msg_ack_request.Check(True)
 
         m_msg_ack_respond = menu.Append(2031, "Acknowledge received messages", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["msg_ack_respond"]:
+        if self.config["msg_ack_respond"]:
             m_msg_ack_respond.Check(True)
 
         menu.AppendSeparator()
 
         m_accept_anon = menu.Append(2040, "Accept anonymous messages", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["accept_anon"]:
+        if self.config["accept_anon"]:
             m_accept_anon.Check(True)
 
         #menu.AppendSeparator()
 
         #m_start_in_tray = menu.Append(2050, "Start in Systray", "", kind=wx.ITEM_CHECK)
-        #if self.fhc.config["start_in_tray"]:
+        #if self.config["start_in_tray"]:
         #    m_start_in_tray.Check(True)
         #self.m_start_tray = m_start_tray  # event handler needs this object, not just ID?
         #if self.config.settings["start-tray"]:
@@ -130,12 +130,13 @@ class MainFrame(wx.Frame):
     def get_chat(self, name):
         if name not in self.chats:
             log.info("Creating new chat window with %r" % name)
-            self.chats[name] = ChatPanel(self.tabs, self, self.fhc.get_chum(name))
+            self.chats[name] = ChatPanel(self.tabs, self, self.get_chum(name))
             self.tabs.AddPage(self.chats[name], name)
         self.tabs.SetSelection(1)
         return self.chats[name]
 
-    def OnData(self, chum, data):
+    def on_data(self, data):
+        chum = self.get_chum(data.username)
         wx.PostEvent(self, RecvEvent(myEVT_RECV, -1, (chum, data)))
 
     def OnRecv(self, evt):
@@ -147,8 +148,8 @@ class MainFrame(wx.Frame):
         elif cmd == "ACT":
             self.get_chat(chum.uid).show("* %s %s" % (chum.name, args))
         elif cmd == "PING":
-            if data.username and self.fhc.config["status_respond"]:
-                self.fhc.send(data.username, "PONG %s %s" % (args, self.fhc.status))
+            if data.username and self.config["status_respond"]:
+                self.send(data.username, "PONG %s %s" % (args, self.status))
         elif cmd == "PONG":
             nonce, _, status = args.partition(" ")
             self.chums.set_status(chum, status)
@@ -156,22 +157,23 @@ class MainFrame(wx.Frame):
             self.get_chat(chum.uid).show("??? %s %s" % (chum.name, data.data))
 
     def __init__(self, parent):
-        self.fhc = common.FHC()
-        self.fhc.load_config()
-        self.gpg = self.fhc.gpg
+        # wx.Frame.__init__(self)
+        common.FirehoseClient.__init__(self)
+        self.load_config()
+
         self.chats = {}
 
         self.__init_gui(parent)
 
         self.Bind(EVT_RECV, self.OnRecv)
-        self.fhc.start(self.OnData)
+        self.start_recv_thread()
 
     def OnClose(self, evt):
         self.Close()
 
     def OnWinClose(self, evt):
         log.info("Saving config and exiting")
-        self.fhc.save_config()
+        self.save_config()
         #if self.icon:
         #    self.icon.Destroy()
         self.Destroy()

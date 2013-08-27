@@ -19,10 +19,10 @@ class Chum(object):
         self.keyid = key["keyid"]
 
     def send(self, data):
-        self.fhc.send(self.keyid, data)
+        self.fhc.send(self.uid, data)
 
 
-class FHC(object):
+class FirehoseClient(object):
     def __init__(self):
         self.gpg = gnupg.GPG()
         self.config = {
@@ -80,12 +80,7 @@ class FHC(object):
             for chum in self.get_chums():
                 self.send(chum.uid, "PONG 0 %s" % self.status)
 
-    def start(self, cb):
-        def handle(data):
-            chum = self.get_chum(data.username)
-            if cb:
-                cb(chum, data)
-
+    def start_recv_thread(self):
         def recv():
             while True:
                 data = self.hose.get_data()
@@ -95,7 +90,7 @@ class FHC(object):
                     data = self.gpg.decrypt(data, passphrase=self.passphrase)
                     if data:
                         log.info("IN[%s]: %s", data.username, data.data)
-                        handle(data)
+                        self.on_data(data)
                 except Exception as e:
                     log.exception("Error while decoding packet")
             self.hose.close()
@@ -103,6 +98,37 @@ class FHC(object):
         thread = threading.Thread(target=recv)
         thread.daemon = True
         thread.start()
+
+    def on_data(self, data):
+        chum = self.get_chum(data.username)
+        cmd, _, data = data.data.partition(" ")
+
+        if cmd == "MSG":
+            self.on_msg(chum, None, data)
+
+        elif cmd == "ACT":
+            self.on_act(chum, None, data)
+
+        elif cmd == "PING":
+            self.on_ping(chum, None, data)
+
+        elif cmd == "PONG":
+            self.on_pong(chum, None, data)
+
+        else:
+            log.warning("Unrecognised command from %r: %r" % (chum.name, data))
+
+    def on_msg(self, chum, target, message):
+        pass
+
+    def on_act(self, chum, target, message):
+        pass
+
+    def on_ping(self, chum, target, message):
+        pass
+
+    def on_pong(self, chum, target, message):
+        pass
 
     def send(self, target, data):
         """

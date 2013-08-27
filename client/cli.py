@@ -2,56 +2,55 @@
 
 import base64
 import sys
+import logging
 
 import firehose.common as common
 
 
-def _select(chums, prompt):
-    print prompt
-    for n, chum in enumerate(chums):
-        print "%02d> %s (%s)" % (n, chum.name, chum.keyid)
-    inp = raw_input("Enter ID number> ")
-    return chums[int(inp)]
+class CLI(common.FirehoseClient):
+    def __select(self, chums, prompt):
+        print prompt
+        for n, chum in enumerate(chums):
+            print "%02d> %s (%s)" % (n, chum.name, chum.keyid)
+        inp = raw_input("Enter ID number> ")
+        return chums[int(inp)]
 
+    def main(self, args=sys.argv):
+        common.FirehoseClient.__init__(self)
+        self.load_config()
 
-def main_send(chum):
-    while True:
-        data = raw_input("Send to %s> " % chum.name)
-        cmd, _, args = data.partition(" ")
-        if cmd == "/me":
-            data = "ACT " + args
-        elif cmd in ["PING", "PONG"]:
+        try:
+            my_self = self.__select(self.get_identities(), "Select an identity to send as:")
+            my_chum = self.__select(self.get_chums(), "Select somebody to send to:")
+
+            self.set_identity(my_self)
+            self.start_recv_thread()
+
+            while True:
+                data = raw_input("Send to %s> " % chum.name)
+                cmd, _, args = data.partition(" ")
+                if cmd == "/me":
+                    data = "ACT " + args
+                elif cmd == "/ping":
+                    data = "PING 0"
+                else:
+                    data = "MSG " + data
+                my_chum.send(data)
+        except (EOFError, KeyboardInterrupt):
             pass
-        else:
-            data = "MSG " + data
-        chum.send(data)
 
+    def on_msg(self, chum, target, message):
+        print "%s: %s" % (chum.name, message)
 
-def main_recv(chum, data):
-    cmd, _, args = data.partition(" ")
-    if cmd == "/me":
-        self.main.get_chat(self.chum.uid).show("* %s %s" % (self.main.fhc.identity.name, args))
-        data = "ACT " + args
-    else:
-        self.main.get_chat(self.chum.uid).show("%s: %s" % (self.main.fhc.identity.name, data))
-        data = "MSG " + data
-    print "%s: %s" % (chum.name, data.data)
-
-
-def main(args=sys.argv):
-    fhc = common.FHC()
-
-    try:
-        my_self = _select(fhc.get_identities(), "Select an identity to send as:")
-        my_chum = _select(fhc.get_chums(), "Select somebody to send to:")
-
-        fhc.set_identity(my_self)
-        fhc.start(main_recv)
-        main_send(my_chum)
-    except (EOFError, KeyboardInterrupt):
-        pass
+    def on_act(self, chum, target, message):
+        print "* %s %s" % (chum.name, message)
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)19.19s %(levelname)4.4s %(name)s: %(message)s")
+    module_log = logging.getLogger("firehose")
+    module_log.setLevel(logging.DEBUG)
+    module_log = logging.getLogger("gnupg")
+    module_log.setLevel(logging.INFO)
+    sys.exit(CLI().main(sys.argv))
 

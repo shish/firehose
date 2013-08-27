@@ -24,7 +24,7 @@ class ChumList(wx.Panel):
         box = wx.BoxSizer(wx.VERTICAL)
         box.SetMinSize((250, 200))
 
-        self.identity = wx.ComboBox(self, choices=[i.uid for i in main.fhc.get_identities()], style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.identity = wx.ComboBox(self, choices=[i.uid for i in main.get_identities()], style=wx.CB_DROPDOWN|wx.CB_READONLY)
         self.identity.Select(0)
         self.Bind(wx.EVT_COMBOBOX, self.OnIdentitySelected, self.identity)
 
@@ -52,10 +52,10 @@ class ChumList(wx.Panel):
         self.update()
 
     def OnIdentitySelected(self, evt):
-        self.main.fhc.set_identity(self.main.fhc.get_chum(self.identity.GetValue()))
+        self.main.set_identity(self.main.get_chum(self.identity.GetValue()))
 
     def OnStatusSelected(self, evt):
-        self.main.fhc.set_status(self.status.GetValue())
+        self.main.set_status(self.status.GetValue())
 
     def set_status(self, chum, state):
         self.statuses[chum.uid] = state
@@ -72,7 +72,7 @@ class ChumList(wx.Panel):
 
     def update(self):
         self.chums.Clear(True)
-        self.chum_list = self.main.fhc.get_chums()
+        self.chum_list = self.main.get_chums()
 
         for n, chum in enumerate(self.chum_list):
             name = wx.Button(self, 4100 + n, chum.name)

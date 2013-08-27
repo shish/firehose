@@ -25,10 +25,10 @@ class ChatPanel(wx.Panel):
         data = self.line.GetValue()
         cmd, _, args = data.partition(" ")
         if cmd == "/me":
-            self.main.get_chat(self.chum.uid).show("* %s %s" % (self.main.fhc.identity.name, args))
+            self.main.get_chat(self.chum.uid).show("* %s %s" % (self.main.identity.name, args))
             data = "ACT " + args
         else:
-            self.main.get_chat(self.chum.uid).show("%s: %s" % (self.main.fhc.identity.name, data))
+            self.main.get_chat(self.chum.uid).show("%s: %s" % (self.main.identity.name, data))
             data = "MSG " + data
         self.chum.send(data)
         self.line.SetValue("")
