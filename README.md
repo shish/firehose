@@ -9,8 +9,13 @@ Protocol:
  * send packets, receive packets
 
  * packet =
+   * byte: data type
    * unsigned short: length of data
    * byte[$length]: GPG-encrypted message
+
+ * data type =
+   * 0: GPG-encrypted message to be / being broadcasted
+   * 1: firehose settings (trickle rate, etc - not implemented yet)
 
  * message =
    * cmd data
@@ -44,11 +49,15 @@ Encrypted email still has "To:" and "From:" in clear text, which is enough
 to get you in trouble. The firehose is broadcast, so everyone gets all
 messages, you can't tell who's talking to who from the headers.
 
+TODO:
+-----
 Traffic analysis (A sends a message, then B sends a message, then A sends a
 message) would allow an attacker to infer that those two people are chatting.
 To combat this, clients send a constant ~1kbps stream of data 24/7 - small /
 empty messages are padded with random[1] data, large messages are buffered
-and dripped out slowly. (Not implemented yet.)
+and dripped out slowly.
+
+How to handle message splitting / recombining?
 
 [1] does encrypted random data look like encrypted real data? If the data
 is compressed before encryption, then real data would be shorter than random.

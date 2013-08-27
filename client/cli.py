@@ -28,6 +28,13 @@ def main_send(chum):
 
 
 def main_recv(chum, data):
+    cmd, _, args = data.partition(" ")
+    if cmd == "/me":
+        self.main.get_chat(self.chum.uid).show("* %s %s" % (self.main.fhc.identity.name, args))
+        data = "ACT " + args
+    else:
+        self.main.get_chat(self.chum.uid).show("%s: %s" % (self.main.fhc.identity.name, data))
+        data = "MSG " + data
     print "%s: %s" % (chum.name, data.data)
 
 
