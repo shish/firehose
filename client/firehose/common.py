@@ -1,4 +1,6 @@
 
+import json
+import os
 import gnupg
 import logging
 import threading
@@ -23,12 +25,36 @@ class Chum(object):
 class FHC(object):
     def __init__(self):
         self.gpg = gnupg.GPG()
+        self.config = {
+            "status_request": False,
+            "status_broadcast": False,
+            "status_respond": False,
+
+            "msg_ack_request": False,
+            "msg_ack_respond": False,
+
+            "accept_anon": False,
+
+            "start_in_tray": False,
+        }
         self.passphrase = "firehose"
         self.identity = ANONYMOUS
+        self.status = "Unknown"
         self.sock = None
 
         self.set_identity(self.get_identities()[0])
         self.hose = Firehose()
+
+    def load_config(self):
+        path = os.path.expanduser("~/.config/fhc.conf")
+        if os.path.exists(path):
+            data = file(path).read()
+            self.config.update(json.loads(data))
+
+    def save_config(self):
+        path = os.path.expanduser("~/.config/fhc.conf")
+        data = json.dumps(self.config, indent=4)
+        file(path, "w").write(data)
 
     def get_chums(self):
         return [Chum(self, key) for key in self.gpg.list_keys(False)]
@@ -46,6 +72,13 @@ class FHC(object):
     def set_identity(self, identity):
         log.info("Setting identity to %s" % identity.uid)
         self.identity = identity
+
+    def set_status(self, status):
+        log.info("Setting status to %s [broadcast=%r]" % (status, self.config["status_broadcast"]))
+        self.status = status
+        if self.config["status_broadcast"]:
+            for chum in self.get_chums():
+                self.send(chum.uid, "PONG 0 %s" % self.status)
 
     def start(self, cb):
         def handle(data):
@@ -82,7 +115,8 @@ class FHC(object):
         TODO: be a thread which reads from a queue and trickles out slowly
         TODO: if queue is empty, trickle random data
         """
-        log.info("OUT[%s]: %s", self.identity.uid, data)
+        #log.info("OUT[%s]: %s", self.identity.uid, data)
+        log.info("OUT[%s]: %s", target, data)
         data = self.gpg.encrypt(data, target, sign=self.identity.keyid, passphrase=self.passphrase, always_trust=True)
         self.hose.send_data(data.data)
 

@@ -23,8 +23,8 @@ Protocol:
  * cmds:
    * MSG <text>
    * ACT <text>
-   * PING
-   * PONG <status>
+   * PING <nonce>
+   * PONG <nonce> <status>
 ```
 
 If the GPG message is signed, and the recipient has your public key, you'll

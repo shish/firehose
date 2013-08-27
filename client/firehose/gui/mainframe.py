@@ -34,22 +34,39 @@ class MainFrame(wx.Frame):
         ###############################################################
         menu = wx.Menu()
 
-        m_rempasswd = menu.Append(2020, "Ping contacts for their status", "", kind=wx.ITEM_CHECK)
-        m_rempasswd = menu.Append(2021, "Broadcast own status changes", "", kind=wx.ITEM_CHECK)
-        m_rempasswd = menu.Append(2022, "Respond to status reqests", "", kind=wx.ITEM_CHECK)
+        m_status_request = menu.Append(2020, "Ping contacts for their status", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["status_request"]:
+            m_status_request.Check(True)
+
+        m_status_broadcast = menu.Append(2021, "Broadcast own status changes", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["status_broadcast"]:
+            m_status_broadcast.Check(True)
+
+        m_status_respond = menu.Append(2022, "Respond to status reqests", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["status_respond"]:
+            m_status_respond.Check(True)
 
         menu.AppendSeparator()
 
-        m_rempasswd = menu.Append(2030, "Request message acknowledgement", "", kind=wx.ITEM_CHECK)
-        m_rempasswd = menu.Append(2031, "Acknowledge received messages", "", kind=wx.ITEM_CHECK)
+        m_msg_ack_request = menu.Append(2030, "Request message acknowledgement", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["msg_ack_request"]:
+            m_msg_ack_request.Check(True)
+
+        m_msg_ack_respond = menu.Append(2031, "Acknowledge received messages", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["msg_ack_respond"]:
+            m_msg_ack_respond.Check(True)
 
         menu.AppendSeparator()
 
-        m_rempasswd = menu.Append(2040, "Accept anonymous messages", "", kind=wx.ITEM_CHECK)
+        m_accept_anon = menu.Append(2040, "Accept anonymous messages", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["accept_anon"]:
+            m_accept_anon.Check(True)
 
         menu.AppendSeparator()
 
-        m_start_tray = menu.Append(2050, "Start in Systray", "", kind=wx.ITEM_CHECK)
+        m_start_in_tray = menu.Append(2050, "Start in Systray", "", kind=wx.ITEM_CHECK)
+        if self.fhc.config["start_in_tray"]:
+            m_start_in_tray.Check(True)
         #self.m_start_tray = m_start_tray  # event handler needs this object, not just ID?
         #if self.config.settings["start-tray"]:
         #    m_start_tray.Check(True)
@@ -117,15 +134,17 @@ class MainFrame(wx.Frame):
         elif cmd == "ACT":
             self.get_chat(chum.uid).show("* %s %s" % (chum.name, args))
         elif cmd == "PING":
-            if data.username:
-                self.fhc.send(data.username, "PONG %s" % self.chums.status.GetValue())
+            if data.username and self.fhc.config["status_respond"]:
+                self.fhc.send(data.username, "PONG %s %s" % (args, self.fhc.status))
         elif cmd == "PONG":
-            self.chums.set_status(chum, args)
+            nonce, _, status = args.partition(" ")
+            self.chums.set_status(chum, status)
         else:
             self.get_chat(chum.uid).show("??? %s %s" % (chum.name, data.data))
 
     def __init__(self, parent):
         self.fhc = common.FHC()
+        self.fhc.load_config()
         self.gpg = self.fhc.gpg
         self.chats = {}
 
@@ -139,6 +158,7 @@ class MainFrame(wx.Frame):
 
     def OnWinClose(self, evt):
         log.info("Saving config and exiting")
+        self.fhc.save_config()
         #if self.icon:
         #    self.icon.Destroy()
         self.Destroy()

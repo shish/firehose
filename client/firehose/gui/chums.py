@@ -1,4 +1,5 @@
 import wx
+import time
 
 from .chat import ChatPanel
 
@@ -29,6 +30,7 @@ class ChumList(wx.Panel):
 
         self.status = wx.ComboBox(self, choices=["Available", "Busy"], style=wx.CB_DROPDOWN|wx.CB_READONLY)
         self.status.Select(0)
+        self.Bind(wx.EVT_COMBOBOX, self.OnStatusSelected, self.status)
 
         self.chums = wx.FlexGridSizer(0, 2)
         self.chums.AddGrowableCol(0)
@@ -51,6 +53,9 @@ class ChumList(wx.Panel):
 
     def OnIdentitySelected(self, evt):
         self.main.fhc.set_identity(self.main.fhc.get_chum(self.identity.GetValue()))
+
+    def OnStatusSelected(self, evt):
+        self.main.fhc.set_status(self.status.GetValue())
 
     def set_status(self, chum, state):
         self.statuses[chum.uid] = state
@@ -89,4 +94,4 @@ class ChumList(wx.Panel):
         uid = evt.GetId() - 4200
         chum = self.chum_list[uid]
         self.set_status(chum, "Checking...")
-        chum.send("PING")
+        chum.send("PING %d" % int(time.time()))
