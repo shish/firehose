@@ -3,7 +3,7 @@ firehose
 
 GPG-based chat client
 
-Protocol:
+Protocol Version 0:
 ```
  * connect to firehose.shishnet.org:9988
  * send packets, receive packets
@@ -22,9 +22,19 @@ Protocol:
 
  * cmds:
    * MSG <text>
+     - "Bob: hello"
    * ACT <text>
+     - "* Bob acts"
    * PING <nonce>
+     - request client status
    * PONG <nonce> <status>
+     - announce client status
+   * CHAT <keydata>
+     - send one private key to several friends so they can all
+       decode chatroom messages
+       (TODO: detect that a message was decoded using a group
+       key rather than a personal key; show the message in the
+       group window rather than one-to-one window)
 ```
 
 If the GPG message is signed, and the recipient has your public key, you'll

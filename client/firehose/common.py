@@ -35,7 +35,7 @@ class FHC(object):
 
             "accept_anon": False,
 
-            "start_in_tray": False,
+            #"start_in_tray": False,
         }
         self.passphrase = "firehose"
         self.identity = ANONYMOUS

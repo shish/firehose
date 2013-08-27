@@ -37,14 +37,27 @@ class MainFrame(wx.Frame):
         m_status_request = menu.Append(2020, "Ping contacts for their status", "", kind=wx.ITEM_CHECK)
         if self.fhc.config["status_request"]:
             m_status_request.Check(True)
+        def OnToggleStatusRequest(evt):
+            self.fhc.config["status_request"] = m_status_request.IsChecked()
+        self.Bind(wx.EVT_MENU, OnToggleStatusRequest, m_status_request)
 
         m_status_broadcast = menu.Append(2021, "Broadcast own status changes", "", kind=wx.ITEM_CHECK)
         if self.fhc.config["status_broadcast"]:
             m_status_broadcast.Check(True)
+        def OnToggleStatusBroadcast(evt):
+            self.fhc.config["status_broadcast"] = m_status_broadcast.IsChecked()
+            if self.fhc.config["status_broadcast"]:
+                self.fhc.set_status(self.fhc.status)
+        self.Bind(wx.EVT_MENU, OnToggleStatusBroadcast, m_status_broadcast)
 
         m_status_respond = menu.Append(2022, "Respond to status reqests", "", kind=wx.ITEM_CHECK)
         if self.fhc.config["status_respond"]:
             m_status_respond.Check(True)
+        def OnToggleStatusRespond(evt):
+            self.fhc.config["status_respond"] = m_status_respond.IsChecked()
+            if self.fhc.config["status_respond"]:
+                self.fhc.set_status(self.fhc.status)
+        self.Bind(wx.EVT_MENU, OnToggleStatusRespond, m_status_respond)
 
         menu.AppendSeparator()
 
@@ -62,11 +75,11 @@ class MainFrame(wx.Frame):
         if self.fhc.config["accept_anon"]:
             m_accept_anon.Check(True)
 
-        menu.AppendSeparator()
+        #menu.AppendSeparator()
 
-        m_start_in_tray = menu.Append(2050, "Start in Systray", "", kind=wx.ITEM_CHECK)
-        if self.fhc.config["start_in_tray"]:
-            m_start_in_tray.Check(True)
+        #m_start_in_tray = menu.Append(2050, "Start in Systray", "", kind=wx.ITEM_CHECK)
+        #if self.fhc.config["start_in_tray"]:
+        #    m_start_in_tray.Check(True)
         #self.m_start_tray = m_start_tray  # event handler needs this object, not just ID?
         #if self.config.settings["start-tray"]:
         #    m_start_tray.Check(True)
