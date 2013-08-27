@@ -4,33 +4,35 @@ firehose
 GPG-based chat client
 
 Protocol:
-  connect to firehose.shishnet.org:9988
-  send packets, receive packets
+```
+ * connect to firehose.shishnet.org:9988
+ * send packets, receive packets
 
-  packet =
-    unsigned short: length of data
-	byte[$length]: GPG-encrypted message
+ * packet =
+   * unsigned short: length of data
+   * byte[$length]: GPG-encrypted message
 
-  message =
-    cmd data
+ * message =
+   * cmd data
 
-  cmds:
-    MSG <text>
-    ACT <text>
-    PING
-    PONG <status>
+ * cmds:
+   * MSG <text>
+   * ACT <text>
+   * PING
+   * PONG <status>
+```
 
-  If the GPG message is signed, and the recipient has your public key, you'll
-  show up in a window of your own at their end; if not, you'll show up as
-  "Unknown". This is pretty much using your GPG keyring as an IM buddy list.
+If the GPG message is signed, and the recipient has your public key, you'll
+show up in a window of your own at their end; if not, you'll show up as
+"Unknown". This is pretty much using your GPG keyring as an IM buddy list.
 
 
 Notes
-~~~~~
+-----
 I am not a cryptographer, this is an experiment, don't bet your life on it.
 
 Why?
-~~~~
+----
 Because the people on Hacker News keep pointing out the same flaws in all
 sorts of supposedly secure systems; I want to fix those, so that they can
 have a different set of flaws to complain about :P
