@@ -27,7 +27,7 @@ class CLI(common.FirehoseClient):
             self.start_recv_thread()
 
             while True:
-                data = raw_input("Send to %s> " % chum.name)
+                data = raw_input("Send to %s> " % my_chum.name)
                 cmd, _, args = data.partition(" ")
                 if cmd == "/me":
                     data = "ACT " + args
