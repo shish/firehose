@@ -64,7 +64,7 @@ class FirehoseClient(object):
             if uid == c.uid:
                 return c
         log.warning("Couldn't find chum: %r" % uid)
-        return None
+        return ANONYMOUS
 
     def get_identities(self):
         return [Chum(self, key) for key in self.gpg.list_keys(True)] + [ANONYMOUS, ]
@@ -90,7 +90,7 @@ class FirehoseClient(object):
                     data = self.gpg.decrypt(data, passphrase=self.passphrase)
                     if data:
                         log.info("IN[%s]: %s", data.username, data.data)
-                        self.on_data(data)
+                        self.on_raw_data(data)
                 except Exception as e:
                     log.exception("Error while decoding packet")
             self.hose.close()
@@ -99,9 +99,17 @@ class FirehoseClient(object):
         thread.daemon = True
         thread.start()
 
-    def on_data(self, data):
+    def on_raw_data(self, data):
         chum = self.get_chum(data.username)
+        target = None
+        self.on_data(chum, target, data)
+
+    def on_data(self, chum, target, data):
         cmd, _, data = data.data.partition(" ")
+
+        if chum == ANONYMOUS and not self.config["accept_anon"]:
+            log.info("Ignoring anonymous message: %r" % data)
+            return
 
         if cmd == "MSG":
             self.on_msg(chum, None, data)
