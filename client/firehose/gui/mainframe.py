@@ -241,7 +241,8 @@ class MainFrame(common.FirehoseClient):
                 self.identity = self.get_chum("%s (%s) <%s>" % (name, comment, email))
                 self.identity_box.Insert(self.identity.name, 0)
                 self.identity_box.Select(0)
-                self.update()
+
+                self.update_chum_list()
             else:
                 # revert to old value
                 self.identity_box.SetValue(self.identity.name)
@@ -257,6 +258,8 @@ class MainFrame(common.FirehoseClient):
             path = dlg.GetPath()
             key_data = file(path).read()
             self.gpg.import_keys(key_data)
+
+            self.update_chum_list()
 
     def on_get_key(self, evt):
         key_data = None
