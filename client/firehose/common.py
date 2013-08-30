@@ -39,10 +39,10 @@ class FirehoseClient(object):
         }
         self.passphrase = "firehose"
         self.identity = ANONYMOUS
-        self.status = "Unknown"
+        self.status = "Available"
         self.sock = None
 
-        self.set_identity(self.get_identities()[0])
+        self.identity = self.get_identities()[0]
         self.hose = Firehose()
 
     def load_config(self):
@@ -69,16 +69,28 @@ class FirehoseClient(object):
     def get_identities(self):
         return [Chum(self, key) for key in self.gpg.list_keys(True)] + [ANONYMOUS, ]
 
-    def set_identity(self, identity):
-        log.info("Setting identity to %s" % identity.uid)
-        self.identity = identity
+    # identity
+    def __get_identity(self):
+        return self.__identity
 
-    def set_status(self, status):
+    def __set_identity(self, identity):
+        log.info("Setting identity to %s" % identity.uid)
+        self.__identity = identity
+
+    identity = property(__get_identity, __set_identity)
+
+    # status
+    def __get_status(self):
+        return self.__status
+
+    def __set_status(self, status):
         log.info("Setting status to %s [broadcast=%r]" % (status, self.config["status_broadcast"]))
-        self.status = status
+        self.__status = status
         if self.config["status_broadcast"]:
             for chum in self.get_chums():
-                self.send(chum.uid, "PONG 0 %s" % self.status)
+                self.send(chum.uid, "PONG 0 %s" % self.__status)
+
+    status = property(__get_status, __set_status)
 
     def start_recv_thread(self):
         def recv():
@@ -121,7 +133,8 @@ class FirehoseClient(object):
             self.on_ping(chum, None, data)
 
         elif cmd == "PONG":
-            self.on_pong(chum, None, data)
+            nonce, _, status = data.partition(" ")
+            self.on_pong(chum, None, nonce, status)
 
         else:
             log.warning("Unrecognised command from %r: %r" % (chum.name, data))
@@ -135,7 +148,7 @@ class FirehoseClient(object):
     def on_ping(self, chum, target, message):
         pass
 
-    def on_pong(self, chum, target, message):
+    def on_pong(self, chum, target, nonce, status):
         pass
 
     def send(self, target, data):

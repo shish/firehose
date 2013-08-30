@@ -99,7 +99,7 @@ class MainFrame(wx.Frame, common.FirehoseClient):
         def on_toggle_status_broadcast(evt):
             self.config["status_broadcast"] = m_status_broadcast.IsChecked()
             if self.config["status_broadcast"]:
-                self.set_status(self.status)
+                self.status = self.status
         self.Bind(wx.EVT_MENU, on_toggle_status_broadcast, m_status_broadcast)
 
         m_status_respond = menu.Append(2022, "Respond to status reqests", "", kind=wx.ITEM_CHECK)
@@ -158,14 +158,14 @@ class MainFrame(wx.Frame, common.FirehoseClient):
         box = wx.BoxSizer(wx.VERTICAL)
         box.SetMinSize((250, 200))
 
-        self.identity = wx.ComboBox(self, choices=[i.uid for i in self.get_identities()], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        self.identity.Select(0)
-        self.Bind(wx.EVT_COMBOBOX, self.on_identity_selected, self.identity)
+        self.identity_box = wx.ComboBox(self, choices=[i.uid for i in self.get_identities()], style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.identity_box.Select(0)
+        self.Bind(wx.EVT_COMBOBOX, self.on_identity_selected, self.identity_box)
 
-        self.status = wx.ComboBox(self, choices=["Available", "Busy"], style=wx.CB_DROPDOWN)
-        self.status.Select(0)
-        self.Bind(wx.EVT_COMBOBOX, self.on_status_selected, self.status)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_status_selected, self.status)
+        self.status_box = wx.ComboBox(self, choices=["Available", "Busy"], style=wx.CB_DROPDOWN)
+        self.status_box.Select(0)
+        self.Bind(wx.EVT_COMBOBOX, self.on_status_selected, self.status_box)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_status_selected, self.status_box)
 
         self.chum_grid = wx.FlexGridSizer(0, 2)
         self.chum_grid.AddGrowableCol(0)
@@ -175,8 +175,8 @@ class MainFrame(wx.Frame, common.FirehoseClient):
         get_key = wx.Button(self, -1, "Show My ID")
         self.Bind(wx.EVT_BUTTON, self.on_get_key, get_key)
 
-        box.Add(self.identity, 0, wx.EXPAND)
-        box.Add(self.status, 0, wx.EXPAND)
+        box.Add(self.identity_box, 0, wx.EXPAND)
+        box.Add(self.status_box, 0, wx.EXPAND)
         box.Add(self.chum_grid, 1, wx.EXPAND)
         box.Add(add_chum, 0, wx.EXPAND)
         box.Add(get_key, 0, wx.EXPAND)
@@ -186,7 +186,7 @@ class MainFrame(wx.Frame, common.FirehoseClient):
 
     def get_my_key(self):
         # find which identity to use
-        keyname = self.identity.GetValue()
+        keyname = self.identity_box.GetValue()
         my_key = {"uids": ["Anonymous Self"], "keyid": None}
         for key in self.gpg.list_keys(True):
             if key["uids"][0] == keyname:
@@ -225,10 +225,10 @@ class MainFrame(wx.Frame, common.FirehoseClient):
     ###################################################################
 
     def on_identity_selected(self, evt):
-        self.set_identity(self.get_chum(self.identity.GetValue()))
+        self.set_identity(self.get_chum(self.identity_box.GetValue()))
 
     def on_status_selected(self, evt):
-        self.set_status(self.status.GetValue())
+        self.status = self.status_box.GetValue()
 
     def on_get_key(self, evt):
         my_key = self.get_my_key()
@@ -303,4 +303,7 @@ class MainFrame(wx.Frame, common.FirehoseClient):
 
     def on_act(self, chum, target, msg):
         self.get_chat(chum.uid).show("* %s %s" % (chum.name, msg))
+
+    def on_pong(self, chum, target, nonce, status):
+        self.set_status(chum, status)
 

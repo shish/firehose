@@ -11,7 +11,6 @@ import firehose.common as common
 log = logging.getLogger(__name__)
 
 
-
 def main(args=sys.argv):
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)19.19s %(levelname)4.4s %(name)s: %(message)s")
     module_log = logging.getLogger("firehose")
