@@ -3,7 +3,7 @@ import time
 import logging
 
 from firehose.gui.chat import ChatPanel
-from firehose.gui.key import CreateKeyDialog
+#from firehose.gui.key import CreateKeyDialog
 import firehose.common as common
 
 log = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class MainFrame(common.FirehoseClient):
 
         self.frame.Bind(EVT_RECV, self.on_recv)
         self.start_recv_thread()
+        self.start_send_thread()
 
     ###################################################################
     # GUI setup
@@ -329,7 +330,7 @@ class MainFrame(common.FirehoseClient):
     def on_raw_data(self, data):
         chum = self.get_chum(data.username)
         target = None
-        wx.PostEvent(self, RecvEvent(myEVT_RECV, -1, (chum, target, data)))
+        wx.PostEvent(self.frame, RecvEvent(myEVT_RECV, -1, (chum, target, data)))
 
     def on_recv(self, evt):
         chum, target, data = evt.GetValue()

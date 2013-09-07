@@ -4,6 +4,10 @@ import os
 import gnupg
 import logging
 import threading
+import random
+import base64
+from Queue import Queue, Empty
+from time import sleep
 
 from firehose.net import Firehose
 
@@ -44,6 +48,7 @@ class FirehoseClient(object):
 
         self.identity = self.get_identities()[0]
         self.hose = Firehose()
+        self.send_queue = Queue()
 
     def load_config(self):
         path = os.path.expanduser("~/.config/fhc.conf")
@@ -129,6 +134,9 @@ class FirehoseClient(object):
         elif cmd == "ACT":
             self.on_act(chum, None, data)
 
+        elif cmd == "SPAM":
+            self.on_spam(chum, None, data)
+
         elif cmd == "PING":
             self.on_ping(chum, None, data)
 
@@ -151,21 +159,27 @@ class FirehoseClient(object):
     def on_pong(self, chum, target, nonce, status):
         pass
 
-    def send(self, target, data):
-        """
-        TODO: add to queue rather than sending directly
-        """
-        self.__send(target, data)
+    def on_spam(self, chum, target, message):
+        pass
 
-    def __send(self, target, data):
-        """
-        TODO: be a thread which reads from a queue and trickles out slowly
-        TODO: if queue is empty, trickle random data
-        """
-        #log.info("OUT[%s]: %s", self.identity.uid, data)
-        log.info("OUT[%s]: %s", target, data)
-        data = self.gpg.encrypt(data, target, sign=self.identity.keyid, passphrase=self.passphrase, always_trust=True)
-        self.hose.send_data(data.data)
+    def start_send_thread(self):
+        def send():
+            while True:
+                try:
+                    target, data = self.send_queue.get_nowait()
+                except Empty:
+                    target, data = self.identity.uid, "SPAM " + base64.b64encode(os.urandom(random.randint(10, 50)))
+                log.info("OUT[%s]: %s", target, data)
+                data = self.gpg.encrypt(data, target, sign=self.identity.keyid, passphrase=self.passphrase, always_trust=True)
+                self.hose.send_data(data.data)
+                sleep(5)
+
+        thread = threading.Thread(target=send)
+        thread.daemon = True
+        thread.start()
+
+    def send(self, target, data):
+        self.send_queue.put((target, data))
 
 
 ANONYMOUS = Chum(None, {"keyid": None, "uids": ["Anonymous"]})
