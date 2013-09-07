@@ -11,14 +11,14 @@ Protocol Version 0:
  * packet =
    * byte: data type
    * unsigned short: length of data
-   * byte[$length]: GPG-encrypted message
+   * byte[$length]: data
 
  * data type =
    * 0: GPG-encrypted message to be / being broadcasted
    * 1: firehose settings (trickle rate, etc - not implemented yet)
 
  * message =
-   * cmd data
+   * cmd args
 
  * cmds:
    * MSG <text>
@@ -63,7 +63,7 @@ TODO:
 -----
 Traffic analysis (A sends a message, then B sends a message, then A sends a
 message) would allow an attacker to infer that those two people are chatting.
-To combat this, clients send a constant ~1kbps stream of data 24/7 - small /
+To combat this, clients send a constant ~0.1kbps stream of data 24/7 - small /
 empty messages are padded with random[1] data, large messages are buffered
 and dripped out slowly.
 
