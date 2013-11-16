@@ -23,8 +23,9 @@ class CLI(common.FirehoseClient):
             my_self = self.__select(self.get_identities(), "Select an identity to send as:")
             my_chum = self.__select(self.get_chums(), "Select somebody to send to:")
 
-            self.set_identity(my_self)
+            self.identity = my_self
             self.start_recv_thread()
+            self.start_send_thread()
 
             while True:
                 data = raw_input("Send to %s> " % my_chum.name)
