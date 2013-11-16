@@ -1,34 +1,30 @@
-import socket
-import base64
-import struct
+import zmq
+
 
 
 class Firehose(object):
     def __init__(self):
-        self.sock = None
+        self.sock_req = None
+        self.sock_sub = None
         self.connect()
 
     def connect(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(("firehose.shishnet.org", 9988))
+        self.context = zmq.Context()
+        self.sock_req = self.context.socket(zmq.PUSH)
+        self.sock_req.connect("tcp://firehose.shishnet.org:9990")
+        self.sock_sub = self.context.socket(zmq.SUB)
+        self.sock_sub.connect("tcp://firehose.shishnet.org:9989")
+        self.sock_sub.setsockopt(zmq.SUBSCRIBE, "")
 
     def close(self):
-        self.sock.close()
+        self.sock_sub.close()
+        self.sock_req.close()
+        self.context.term()
         self.sock = None
 
     def get_data(self):
-        data_type, data_len = struct.unpack(">bh", self.sock.recv(3))
-
-        if data_type != 0:
-            print "Unknown data type: %r" % data_type
-            self.close()
-            self.connect()
-            return None
-
-        data = ""
-        while len(data) < data_len:
-            data = data + self.sock.recv(min(data_len - len(data), 4096))
-        return data
+        return self.sock_sub.recv()
 
     def send_data(self, data):
-        self.sock.sendall(struct.pack(">bh", 0, len(data)) + data)
+        print "Sending data"
+        self.sock_req.send(data)
