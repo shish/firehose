@@ -26,5 +26,4 @@ class Firehose(object):
         return self.sock_sub.recv()
 
     def send_data(self, data):
-        print "Sending data"
         self.sock_req.send(data)
